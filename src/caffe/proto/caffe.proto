@@ -391,6 +391,7 @@ message LayerParameter {
   optional ThresholdParameter threshold_param = 128;
   optional TileParameter tile_param = 138;
   optional WindowDataParameter window_data_param = 129;
+  optional YoloLossParameter yolo_loss_param = 140;
 }
 
 // Message that stores parameters used to apply transformation
@@ -1040,6 +1041,17 @@ message WindowDataParameter {
   optional bool cache_images = 12 [default = false];
   // append root_folder to locate images
   optional string root_folder = 13 [default = ""];
+}
+
+message YoloLossParameter {
+  optional uint32 classes = 1 [default = 20];
+  // bounding box (x1, y1, x2, y2)
+  optional uint32 coords = 2 [default = 4];
+  // S in the paper
+  optional uint32 side = 3 [default = 7];
+  // B in the paper
+  optional uint32 num = 4 [default = 2];
+  optional float jitter = 5 [default = 0.2];
 }
 
 message SPPParameter {
