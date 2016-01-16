@@ -6,8 +6,23 @@ import os
 import shutil
 
 target_size = (448, 448)
+S = 7
+classes = 20
 
-with open("../data/2012_train_caffe.txt") as f:
+def convert(size, box):
+	dw = 1./size[0]
+	dh = 1./size[1]
+	x = (box[0] + box[1])/2.0
+	y = (box[2] + box[3])/2.0
+	w = box[1] - box[0]
+	h = box[3] - box[2]
+	x = x*dw
+	w = w*dw
+	y = y*dh
+	h = h*dh
+	return (x,y,w,h)
+
+with open("./data/VOC/2012_train_caffe.txt") as f:
 	lists = f.read().split('\n')
 total = int(lists[0])
 idx = 1
@@ -21,14 +36,26 @@ while idx < len(lists):
 		width   = int(lists[idx+3])
 		height  = int(lists[idx+4])
 		num_box = int(lists[idx+5])
-		lb = np.zeros((1, 64, 5))
+		lb = np.zeros((1, 49, 25))
 		for i in range(0, num_box):
-			box = [ float(s) for s in lists[idx+5+1+i].split(' ')]
-			box[1] /= width
-			box[3] /= width
-			box[2] /= height
-			box[4] /= height
-			lb[0, i] = np.array(box)
+			temp_l = [ int(s) for s in lists[idx+5+1+i].split(' ')]
+			class_index = temp_l[0]
+			box = convert((width, height), temp_l[1:])
+			x = box[0]
+			y = box[1]
+			col = int(x*S)
+			row = int(y*S)
+			x = x*S - col
+			y = y*S - row
+			grid_idx = col+row*S
+			if lb[0, grid_idx, 0] == 1:	# already has object in this grid
+				continue
+			lb[0, grid_idx, 0] = 1
+			#if class_index >= 0 && class_index < classes:
+			lb[0, grid_idx, class_index+1] = 1
+			for j in range(0, 4):
+				lb[0, grid_idx, 21+j] = box[j]
+			#print grid_idx, class_index, lb[0, grid_idx]
 		label_and_bbox_s.append(lb)
 		idx += 5+num_box
 	idx+=1
@@ -41,8 +68,8 @@ if False:
 #print images
 print "train set: %d images" % (len(images))
 
-data_lmdb = 'yolo-train-lmdb'
-label_lmdb = 'yolo-train-label-lmdb'
+data_lmdb = './examples/yolo/yolo-train-lmdb'
+label_lmdb = './examples/yolo/yolo-train-label-lmdb'
 
 if os.path.exists(data_lmdb):
 	shutil.rmtree(data_lmdb)
